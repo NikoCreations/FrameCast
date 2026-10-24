@@ -1,0 +1,134 @@
+package dev.nikocreations.framecast;
+
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.SourceDataLine;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+final class FrameCastAudio {
+    private static volatile Process process;
+    private static volatile Thread thread;
+    private static volatile boolean running;
+
+    private FrameCastAudio() {}
+
+    static synchronized void start(Path path, String ffmpegPath) {
+        stop();
+
+        try {
+            List<String> command = new ArrayList<>();
+            command.add(ffmpegPath);
+            command.add("-hide_banner");
+            command.add("-loglevel");
+            command.add("error");
+            command.add("-nostdin");
+
+            if (FrameCastConfig.data.loop) {
+                command.add("-stream_loop");
+                command.add("-1");
+            }
+
+            command.add("-i");
+            command.add(path.toString());
+            command.add("-vn");
+            command.add("-sn");
+            command.add("-dn");
+            command.add("-ac");
+            command.add("2");
+            command.add("-ar");
+            command.add("44100");
+            command.add("-f");
+            command.add("s16le");
+            command.add("-acodec");
+            command.add("pcm_s16le");
+            command.add("pipe:1");
+
+            Process audioProcess = new ProcessBuilder(command)
+                    .redirectError(ProcessBuilder.Redirect.DISCARD)
+                    .start();
+
+            AudioFormat format = new AudioFormat(
+                    44100.0f, 16, 2, true, false
+            );
+
+            DataLine.Info info = new DataLine.Info(
+                    SourceDataLine.class, format
+            );
+
+            SourceDataLine line = (SourceDataLine)
+                    AudioSystem.getLine(info);
+
+            line.open(format);
+            line.start();
+
+            process = audioProcess;
+            running = true;
+
+            Thread audioThread = new Thread(() -> {
+                try (InputStream input = audioProcess.getInputStream()) {
+                    byte[] buffer = new byte[8192];
+                    int count;
+
+                    while (running
+                            && process == audioProcess
+                            && (count = input.read(buffer)) != -1) {
+                        int offset = 0;
+
+                        while (offset < count && running) {
+                            offset += line.write(
+                                    buffer, offset, count - offset
+                            );
+                        }
+                    }
+                } catch (Exception exception) {
+                    if (running) {
+                        FrameCastClient.LOGGER.error(
+                                "FrameCast audio playback failed",
+                                exception
+                        );
+                    }
+                } finally {
+                    line.stop();
+                    line.close();
+                    audioProcess.destroyForcibly();
+                }
+            }, "FrameCast-audio");
+
+            audioThread.setDaemon(true);
+            thread = audioThread;
+            audioThread.start();
+
+            FrameCastClient.LOGGER.info(
+                    "FrameCast audio started: {}", path
+            );
+        } catch (Exception exception) {
+            stop();
+            FrameCastClient.LOGGER.error(
+                    "Could not start FrameCast audio", exception
+            );
+        }
+    }
+
+    static synchronized void stop() {
+        running = false;
+
+        Process oldProcess = process;
+        process = null;
+
+        if (oldProcess != null) {
+            oldProcess.destroyForcibly();
+        }
+
+        Thread oldThread = thread;
+        thread = null;
+
+        if (oldThread != null) {
+            oldThread.interrupt();
+        }
+    }
+}

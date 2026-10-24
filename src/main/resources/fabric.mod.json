@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "framecast",
+  "version": "${version}",
+  "name": "FrameCast",
+  "description": "Project images and videos onto in-game surfaces with FrameCast.",
+  "authors": [
+    "NikoCreations"
+  ],
+  "license": "ARR",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.nikocreations.framecast.FrameCastClient",
+      "dev.nikocreations.framecast.FrameCastCommands"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
