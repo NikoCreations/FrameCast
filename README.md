@@ -30,7 +30,7 @@ Always download the FrameCast file that matches your Minecraft version.
 
 ## Installation
 
-### CurseForge
+### CurseForge - Coming Soon!
 
 1. Download the FrameCast `.jar` file from the CurseForge project page.
 2. Install Fabric Loader for Minecraft 26.3 if you have not already done so.
@@ -42,13 +42,13 @@ Always download the FrameCast file that matches your Minecraft version.
 
 Make sure you download the actual mod `.jar` file, not the source code or a ZIP archive of the repository.
 
-### Modrinth App
+### Modrinth App - Coming Soon!
 
 FrameCast is **not currently available through the Modrinth App**. Support may be added in the future.
 
 For now, download FrameCast from CurseForge and install it manually using the instructions above.
 
-### Manual installation
+### Manual installation - Compatible
 
 The manual installation process is similar on all three major desktop operating systems:
 
